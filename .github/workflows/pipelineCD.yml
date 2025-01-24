@@ -51,7 +51,7 @@ jobs:
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
           memory: "1G"
           source_dir: "source"
-          entry_point: "execute_pipeline.py"
+          entry_point: "execute_pipeline"
           event_trigger_type: "google.cloud.pubsub.topic.v1.messagePublished"
           event_trigger_pubsub_topic: "projects/personal-448814/topics/training_pipe_topico"
           event_trigger_retry: "true"
