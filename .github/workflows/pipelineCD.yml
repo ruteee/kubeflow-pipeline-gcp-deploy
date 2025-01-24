@@ -44,7 +44,7 @@ jobs:
         timeout-minutes: 10
         with:
           name: '${{needs.setup_environ.outputs.environment}}_training_pipeline'
-          runtime: 'python39'
+          runtime: 'python3.9'
           min_instance_count: 1
           max_instance_count: 1
           service_timeout: "300s"
@@ -56,7 +56,5 @@ jobs:
           event_trigger_pubsub_topic: "projects/personal-448814/topics/training_pipe_topico"
           event_trigger_retry: "true"
           ingress_settings: "ALLOW_ALL"
-          docker_repository: "projects/personal-448814/locations/us-central1/repositories/gcf-artifacts"
-
     
     
