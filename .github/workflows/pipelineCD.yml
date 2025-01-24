@@ -51,7 +51,7 @@ jobs:
           entry_point: "training_pipeline"
           source_dir: "source"
           event_trigger_type: "google.cloud.pubsub.topic.v1.messagePublished"
-          event_trigger_pubsub_topic: "projects/personal-448814/subscriptions/training_pipe_topico-sub"
+          event_trigger_pubsub_topic: "projects/personal-448814/subscriptions/training_pipe_topico"
           event_trigger_retry: "true"
 
 
