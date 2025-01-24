@@ -40,21 +40,39 @@ jobs:
           project_id: ${{ secrets.PROJECT_ID }}
           credentials_json: ${{ secrets.CREDENTIALS }}
 
-      - uses: 'google-github-actions/deploy-cloud-functions@v3'
-        timeout-minutes: 10
-        with:
-          name: '${{needs.setup_environ.outputs.environment}}_training_pipeline'
-          runtime: 'python310'
-          min_instance_count: 1
-          max_instance_count: 1
-          service_timeout: "300s"
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          memory: "1G"
-          source_dir: "source"
-          entry_point: "execute_pipeline"
-          event_trigger_type: "google.cloud.pubsub.topic.v1.messagePublished"
-          event_trigger_pubsub_topic: "projects/personal-448814/topics/training_pipe_topico"
-          event_trigger_retry: "true"
-          ingress_settings: "ALLOW_ALL"
-    
+      # - uses: 'google-github-actions/deploy-cloud-functions@v3'
+      #   timeout-minutes: 10
+      #   with:
+      #     name: '${{needs.setup_environ.outputs.environment}}_training_pipeline'
+      #     runtime: 'python310'
+      #     min_instance_count: 1
+      #     max_instance_count: 1
+      #     service_timeout: "300s"
+      #     service_account: ${{ secrets.SERVICE_ACCOUNT }}
+      #     memory: "1G"
+      #     source_dir: "source"
+      #     entry_point: "execute_pipeline"
+      #     event_trigger_type: "google.cloud.pubsub.topic.v1.messagePublished"
+      #     event_trigger_pubsub_topic: "projects/personal-448814/topics/training_pipe_topico"
+      #     event_trigger_retry: "true"
+      #     ingress_settings: "ALLOW_ALL"
+
+      - name: Install gcloud
+        run: |
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          sudo apt-get update && sudo apt-get install google-cloud-cli
+          
+
+
+      - name: Deploy pipeline
+        run: |
+          gcloud functions deploy '${{needs.setup_environ.outputs.environment}}_training_pipeline' \
+          --gen2 \
+          --region=us-central2 \
+          --runtime=python39 \
+          --source=source \
+          --entry-point=execute_pipeline \
+          --trigger-topic=projects/personal-448814/topics/training_pipe_topico
+          
     
