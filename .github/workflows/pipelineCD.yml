@@ -54,8 +54,8 @@ jobs:
           --runtime=python39 \
           --source=source \
           --entry-point=execute_pipeline \
-          --service-account=${{ secrets.SERVICE_ACCOUNT }}
-          --trigger-topic=training_pipe_topico
+          --service-account=${{ secrets.SERVICE_ACCOUNT }} \
+          --trigger-topic=training_pipe_topico \
           --docker-registry=ARTIFACT_REGISTRY
           
     
