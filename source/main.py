@@ -1,6 +1,5 @@
 import logging
 import sys
-import functions_framework
 from kfp.v2 import compiler, dsl
 
 from kfp.v2.dsl import Input, Output, Dataset, Model
@@ -129,7 +128,6 @@ def my_pipeline_func():
     ).after(set_training_pipe_component)
 
 
-@functions_framework.cloud_event
 def execute_pipeline(cloud_event):
     compile_pipeline(my_pipeline_func)
     PIPELINE_ROOT = "temp"

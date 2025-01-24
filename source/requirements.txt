@@ -1,0 +1,9 @@
+kfp==1.8
+ucimlrepo==0.0.7
+scikit-learn==1.5.2
+mlflow==2.12.2
+pyyaml==5.3.1
+google-cloud-aiplatform==1.6
+werkzeug==2.2.2
+urllib3==1.26.15
+requests-toolbelt==0.10.1
