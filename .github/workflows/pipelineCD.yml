@@ -1,0 +1,46 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Pipeline CD
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "dev", "main" ]
+  pull_request:
+    branches: [ "dev", "main" ]
+
+  workflow_dispatch:
+
+jobs:
+  setup-environ:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ step.set_environment.outputs.environment }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: "set_environment"
+        run: |
+          if [[ ${{ github.ref_name }} == dev]]; then echo "environment=development" >> $GITHUB_OUTPUT; fi
+          if [[ ${{ github.ref_name }} == main]]; then echo "environment=production" >> $GITHUB_OUTPUT; fi
+          
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          project_id: 'my-project'
+          workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+
+      - id: 'Pipeline Deploy'
+        uses: 'google-github-actions/deploy-cloud-functions@v3'
+        timeout-minutes: 10
+        with:
+          name: 'training_pipeline'
+          runtime: 'python39'
+          min_instance_count: 1
+          service_account: ${{ secrets.service_acount }}
+          memory: "1G"
+          entry_point: "source"
+          
+          
