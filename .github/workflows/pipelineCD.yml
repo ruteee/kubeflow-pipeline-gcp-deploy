@@ -25,13 +25,6 @@ jobs:
         run: |
           if [[ ${{ github.ref_name }} == dev ]]; then echo "environment=development" >> $GITHUB_OUTPUT; fi
           if [[ ${{ github.ref_name }} == main ]]; then echo "environment=production" >> $GITHUB_OUTPUT; fi
-          
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          project_id: ${{ secrets.PROJECT_ID }}
-          credentials_json: ${{ secrets.CREDENTIALS }}
-          workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
 
   deploy:
     name: Pipeline Deploy
