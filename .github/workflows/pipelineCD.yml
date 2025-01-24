@@ -56,9 +56,7 @@ jobs:
           event_trigger_pubsub_topic: "projects/personal-448814/topics/training_pipe_topico"
           event_trigger_retry: "true"
           ingress_settings: "ALLOW_ALL"
-
-
-
+          docker_repository: "projects/personal-448814/locations/us-central1/repositories/gcf-artifacts"
 
     
     
