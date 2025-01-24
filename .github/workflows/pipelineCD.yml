@@ -47,7 +47,7 @@ jobs:
           runtime: 'python39'
           min_instance_count: 1
           max_instance_count: 1
-          service_timeout: "120s"
+          service_timeout: "300s"
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
           memory: "1G"
           source_dir: "source"
