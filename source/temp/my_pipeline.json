@@ -1,0 +1,199 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-load-data": {
+        "executorLabel": "exec-load-data",
+        "outputDefinitions": {
+          "artifacts": {
+            "Output": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-set-training-pipeline": {
+        "executorLabel": "exec-set-training-pipeline",
+        "outputDefinitions": {
+          "artifacts": {
+            "Output": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipeline_out": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-train-model": {
+        "executorLabel": "exec-train-model",
+        "inputDefinitions": {
+          "artifacts": {
+            "dataset": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipeline": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "Output": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-load-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "load_data"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'ucimlrepo==0.0.7' 'fastparquet==2023.7.0' 'kfp==1.8.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'ucimlrepo==0.0.7' 'fastparquet==2023.7.0' 'kfp==1.8.0' --user) && \"$0\" \"$@\"",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef load_data()-> Dataset:\n    \"\"\"\n    Get iris dataset from UCI reposiory\n    Returns: \n        X  - Dataframe containing 4 features regrding iris characteristics\n        y - The target array for the iris classification \n    \"\"\"\n    import logging\n    from ucimlrepo import fetch_ucirepo\n\n    logging.info(\"Getting Dataset\")\n    data_iris = fetch_ucirepo(id=53) \n    X_array = data_iris.data.features \n    X_array.rename(columns = {\n        'sepal length' : 'sepal_length',\n        'sepal width' : 'sepal_width',\n        'petal length' : 'petal_length',\n        'petal width': 'petal_width'\n    }, inplace=True)\n    y_array = data_iris.data.targets['class']\n\n    X_array['target'] = y_array\n\n    data_artifact = Dataset(name=\"dataset\", metadata={})\n    X_array.to_csv(data_artifact.path)\n\n    return data_artifact\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-set-training-pipeline": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "set_training_pipeline"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'scikit-learn==1.5.2' 'kfp==1.8.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'scikit-learn==1.5.2' 'kfp==1.8.0' --user) && \"$0\" \"$@\"",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef set_training_pipeline(pipeline_out: Output[Model])->Model:\n    \"\"\"\n    Defines training pipeline steps and returns the pipeline\n    \"\"\"\n\n    import logging\n    import joblib\n    from sklearn.impute import SimpleImputer\n    from sklearn.linear_model import LogisticRegression\n    from sklearn.pipeline import Pipeline\n    from sklearn.preprocessing import StandardScaler\n\n    pipeline = Pipeline(steps = [\n        ('Imputer', SimpleImputer(strategy='mean', keep_empty_features=True)),\n        ('normalization', StandardScaler()),\n        ('estimator', LogisticRegression() )\n        ]\n    )\n    # model_artifact = Model(name=\"model\", metadata={}, uri=dsl.get_uri())\n    joblib.dump(pipeline, pipeline_out.path)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-train-model": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "train_model"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "(python3 -m ensurepip || python3 -m ensurepip --user) && (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'scikit-learn==1.5.2' 'pandas' 'kfp==1.8.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet                 --no-warn-script-location 'scikit-learn==1.5.2' 'pandas' 'kfp==1.8.0' --user) && \"$0\" \"$@\"",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train_model(\n    dataset: Input[Dataset],\n    pipeline: Input[Model],\n)->Model:\n    import logging\n    import joblib\n\n    import pandas as pd\n    from sklearn.metrics import accuracy_score\n    from sklearn.model_selection import GridSearchCV, train_test_split\n\n    dataset = pd.read_csv(dataset.path)\n    logging.info(f\"Spliting dataset\")\n    X_train, X_test, y_train, y_test = train_test_split(dataset.drop(columns=\"target\"), dataset[\"target\"], stratify=dataset[\"target\"], test_size=0.2, random_state=14)\n\n    logging.info(f\"Fittig model with train data\")\n\n\n    parameters = {\n        'estimator__solver': ['newton-cg'],\n        'estimator__tol': [ 0.0001, 0.003, 0.01],\n        'estimator__penalty': [None, 'l2'],\n    }\n\n    model = GridSearchCV(estimator=pipeline,\n                            param_grid=parameters,\n                            scoring= {\"AUC\": \"roc_auc_ovr\"},\n                            refit=\"AUC\",\n                            cv=5,\n                            verbose=1,\n                            error_score='raise')\n\n    pipeline = joblib.load(pipeline)\n    model = pipeline.fit(X_train, y_train)\n    y_pred = model.predict(X_test)\n\n    logging.info(f\"Computing scores\")\n    model_score = model.score(X_test, y_test)\n    logging.info(f\"Model AUC Score: {model_score}\")\n\n    test_acc_score = accuracy_score(y_test, y_pred)\n    logging.info(f\"Accuracy test score: {test_acc_score}\")\n\n    logging.info(\"Saving model\")\n    model_artifact = Model(name=\"model\", metadata={})\n    joblib.dump(model, model_artifact.path)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "my-pipeline-"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "load-data": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-load-data"
+            },
+            "taskInfo": {
+              "name": "load-data"
+            }
+          },
+          "set-training-pipeline": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-set-training-pipeline"
+            },
+            "dependentTasks": [
+              "load-data"
+            ],
+            "taskInfo": {
+              "name": "set-training-pipeline"
+            }
+          },
+          "train-model": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-train-model"
+            },
+            "dependentTasks": [
+              "load-data",
+              "set-training-pipeline"
+            ],
+            "inputs": {
+              "artifacts": {
+                "dataset": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Output",
+                    "producerTask": "load-data"
+                  }
+                },
+                "pipeline": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "pipeline_out",
+                    "producerTask": "set-training-pipeline"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "train-model"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.0"
+  },
+  "runtimeConfig": {}
+}
