@@ -16,7 +16,7 @@ jobs:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ step.set_environment.outputs.environment }}
+      environment: ${{ steps.set_environment.outputs.environment }}
     
     steps:
       - uses: actions/checkout@v4
@@ -30,17 +30,19 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           project_id: 'my-project'
+          credentials_json: ${{ secrets.CREDENTIALS }}
           workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
 
-      - id: 'Pipeline Deploy'
+      - id: pipeline-deploy
         uses: 'google-github-actions/deploy-cloud-functions@v3'
         timeout-minutes: 10
         with:
           name: 'training_pipeline'
           runtime: 'python39'
           min_instance_count: 1
-          service_account: ${{ secrets.service_acount }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
           memory: "1G"
-          entry_point: "source"
+          entry_point: "training_pipeline"
+          source_dir: "source"
           
           
