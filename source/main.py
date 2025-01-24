@@ -145,7 +145,7 @@ def my_pipeline_func():
 
 
 
-def execute_pipeline():
+def execute_pipeline(event):
     compile_pipeline(my_pipeline_func)
     PIPELINE_ROOT = "temp"
     aiplatform.init(project="personal-448814",
