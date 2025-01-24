@@ -74,6 +74,6 @@ jobs:
           --source=source \
           --entry-point=execute_pipeline \
           --service_account=${{ secrets.SERVICE_ACCOUNT }}
-          --trigger-topic=projects/personal-448814/topics/training_pipe_topico
+          --trigger-topic=training_pipe_topico
           
     
