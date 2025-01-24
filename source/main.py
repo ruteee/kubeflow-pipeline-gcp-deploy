@@ -1,29 +1,15 @@
 import logging
-import pickle
 import sys
-from typing import List, NamedTuple
-
-
-import joblib
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from ucimlrepo import fetch_ucirepo
-
-
+import functions_framework
 from kfp.v2 import compiler, dsl
-from kfp.components import OutputPath, InputPath
+
 from kfp.v2.dsl import Input, Output, Dataset, Model
-import json
+
 
 from google.cloud import aiplatform
 
 
 logging.basicConfig(level="INFO", stream=sys.stdout)
-
 
 def compile_pipeline(pipeline_func):   
     compiler.Compiler().compile(
@@ -143,9 +129,8 @@ def my_pipeline_func():
     ).after(set_training_pipe_component)
 
 
-
-
-def execute_pipeline(event):
+@functions_framework.cloud_event
+def execute_pipeline(cloud_event):
     compile_pipeline(my_pipeline_func)
     PIPELINE_ROOT = "temp"
     aiplatform.init(project="personal-448814",
