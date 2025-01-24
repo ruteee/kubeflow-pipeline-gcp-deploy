@@ -45,7 +45,7 @@ jobs:
         with:
           name: '${{needs.setup_environ.outputs.environment}}_training_pipeline'
           runtime: 'python39'
-          min_instance_count: 0
+          min_instance_count: 1
           max_instance_count: 1
           service_timeout: "120s"
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
