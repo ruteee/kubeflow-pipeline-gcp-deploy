@@ -6,41 +6,52 @@ name: Pipeline CD
 on:
   push:
     branches: [ "dev", "main" ]
-  pull_request:
-    branches: [ "dev", "main" ]
-
-  workflow_dispatch:
 
 jobs:
-  setup-environ:
+  setup_environ:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ step.set_environment.outputs.environment }}
+      environment: ${{ steps.set_environment.outputs.environment }}
     
     steps:
       - uses: actions/checkout@v4
 
       - id: "set_environment"
         run: |
-          if [[ ${{ github.ref_name }} == dev]]; then echo "environment=development" >> $GITHUB_OUTPUT; fi
-          if [[ ${{ github.ref_name }} == main]]; then echo "environment=production" >> $GITHUB_OUTPUT; fi
-          
+          if [[ ${{ github.ref_name }} == dev ]]; then echo "environment=development" >> $GITHUB_OUTPUT; fi
+          if [[ ${{ github.ref_name }} == main ]]; then echo "environment=production" >> $GITHUB_OUTPUT; fi
+
+  deploy:
+    name: Pipeline Deploy
+    runs-on: ubuntu-latest
+    needs: [setup_environ]
+
+    steps:
+      - uses: actions/checkout@v4
+
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
-          project_id: 'my-project'
-          workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+          project_id: ${{ secrets.PROJECT_ID }}
+          credentials_json: ${{ secrets.CREDENTIALS }}
 
-      - id: 'Pipeline Deploy'
-        uses: 'google-github-actions/deploy-cloud-functions@v3'
-        timeout-minutes: 10
-        with:
-          name: 'training_pipeline'
-          runtime: 'python39'
-          min_instance_count: 1
-          service_account: ${{ secrets.service_acount }}
-          memory: "1G"
-          entry_point: "source"
+      - name: Install gcloud
+        run: |
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          sudo apt-get update && sudo apt-get install google-cloud-cli
+
+      - name: Deploy pipeline
+        run: |
+          gcloud functions deploy '${{needs.setup_environ.outputs.environment}}_training_pipeline' \
+          --no-gen2 \
+          --region=us-central1 \
+          --runtime=python39 \
+          --source=source \
+          --entry-point=execute_pipeline \
+          --service-account=${{ secrets.SERVICE_ACCOUNT }} \
+          --trigger-topic=training_pipe_topico \
+          --docker-registry=ARTIFACT_REGISTRY
           
-          
+    
