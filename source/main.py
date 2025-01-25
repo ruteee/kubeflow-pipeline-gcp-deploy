@@ -1,7 +1,6 @@
 import logging
 import sys
 from kfp.v2 import compiler, dsl
-
 from kfp.v2.dsl import Input, Output, Dataset, Model
 from google.cloud import aiplatform
 
@@ -155,7 +154,6 @@ def execute_pipeline():
     job.run(
         service_account=(
             "personal@personal-448814.iam.gserviceaccount.com"
-        ),
+        )
     )
-
 execute_pipeline()
