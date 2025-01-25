@@ -6,10 +6,6 @@ name: Pipeline CD
 on:
   push:
     branches: [ "dev", "main" ]
-  pull_request:
-    branches: [ "dev", "main" ]
-
-  workflow_dispatch:
 
 jobs:
   setup_environ:
