@@ -10,7 +10,7 @@ logging.basicConfig(level="INFO", stream=sys.stdout)
 def compile_pipeline(pipeline_func):   
     compiler.Compiler().compile(
         pipeline_func=pipeline_func,
-        package_path="./source/temp/my_pipeline.json")
+        package_path="./tmp/my_pipeline.json")
     
 
 @dsl.component(
@@ -136,7 +136,7 @@ def my_pipeline_func():
 
 def execute_pipeline():
     compile_pipeline(my_pipeline_func)
-    PIPELINE_ROOT = "./source/temp"
+    PIPELINE_ROOT = "./tmp"
     aiplatform.init(project="personal-448814",
                     location="us-central1",
                     staging_bucket=(
@@ -156,4 +156,3 @@ def execute_pipeline():
             "personal@personal-448814.iam.gserviceaccount.com"
         )
     )
-execute_pipeline()
