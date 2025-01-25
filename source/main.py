@@ -3,8 +3,6 @@ import sys
 from kfp.v2 import compiler, dsl
 
 from kfp.v2.dsl import Input, Output, Dataset, Model
-
-
 from google.cloud import aiplatform
 
 
@@ -13,37 +11,43 @@ logging.basicConfig(level="INFO", stream=sys.stdout)
 def compile_pipeline(pipeline_func):   
     compiler.Compiler().compile(
         pipeline_func=pipeline_func,
-        package_path="./temp/my_pipeline.json")
+        package_path="./source/temp/my_pipeline.json")
+    
 
-@dsl.component(packages_to_install=["ucimlrepo==0.0.7","fastparquet==2023.7.0"], base_image="python:3.9")
+@dsl.component(
+    packages_to_install=[
+        "ucimlrepo==0.0.7",
+        "fastparquet==2023.7.0"
+    ],
+    base_image="python:3.9")
 def load_data(dataset: Output[Dataset]):
     """
     Get iris dataset from UCI reposiory
     Returns: 
-        X  - Dataframe containing 4 features regrding iris characteristics
-        y - The target array for the iris classification 
+        df_data - Dataframe containing 4 features 
+        regarding iris dataset and the target
     """
     import logging
     from ucimlrepo import fetch_ucirepo
 
     logging.info("Getting Dataset")
     data_iris = fetch_ucirepo(id=53) 
-    X_array = data_iris.data.features 
-    X_array.rename(columns = {
+    df_data = data_iris.data.features 
+    df_data.rename(columns = {
         'sepal length' : 'sepal_length',
         'sepal width' : 'sepal_width',
         'petal length' : 'petal_length',
         'petal width': 'petal_width'
     }, inplace=True)
-    y_array = data_iris.data.targets['class']
+    target_array = data_iris.data.targets['class']
 
-    X_array['target'] = y_array
+    df_data['target'] = target_array
 
-    X_array.to_csv(dataset.path)
+    df_data.to_csv(dataset.path)
 
 
 @dsl.component(packages_to_install=["scikit-learn==1.5.2"], base_image="python:3.9")
-def set_training_pipeline(pipeline_out: Output[Model])->Model:
+def set_training_pipeline(pipeline_out: Output[Model]):
     """
     Defines training pipeline steps and returns the pipeline
     """
@@ -66,7 +70,8 @@ def set_training_pipeline(pipeline_out: Output[Model])->Model:
 def train_model(
     dataset: Input[Dataset],
     pipeline: Input[Model],
-)->Model:
+    output_model: Output[Model]
+)-> Model:
     import logging
     import joblib
     import pandas as pd
@@ -75,10 +80,13 @@ def train_model(
 
     dataset = pd.read_csv(dataset.path)
     logging.info(f"Spliting dataset")
-    X_train, X_test, y_train, y_test = train_test_split(dataset.drop(columns="target"), dataset["target"], stratify=dataset["target"], test_size=0.2, random_state=14)
+    X_train, X_test, y_train, y_test = train_test_split(
+        dataset.drop(columns="target"),
+        dataset["target"],
+        test_size=0.2, 
+        random_state=14)
 
     logging.info(f"Fittig model with train data")
-
 
     parameters = {
         'estimator__solver': ['newton-cg'],
@@ -106,8 +114,7 @@ def train_model(
     logging.info(f"Accuracy test score: {test_acc_score}")
 
     logging.info("Saving model")
-    model_artifact = Model(name="model", metadata={})
-    joblib.dump(model, model_artifact.path)
+    joblib.dump(model, output_model.path)
 
 
 PIPELINE_ROOT="/tmp"
@@ -128,15 +135,17 @@ def my_pipeline_func():
     ).after(set_training_pipe_component)
 
 
-def execute_pipeline(cloud_event):
+def execute_pipeline():
     compile_pipeline(my_pipeline_func)
-    PIPELINE_ROOT = "temp"
+    PIPELINE_ROOT = "./source/temp"
     aiplatform.init(project="personal-448814",
                     location="us-central1",
-                    staging_bucket=f"gs://kfp_bucket_pipeline/{PIPELINE_ROOT}/")
+                    staging_bucket=(
+                        f"gs://kfp_bucket_pipeline/{PIPELINE_ROOT}/"
+                    ))
     job = aiplatform.PipelineJob(
         display_name="A pipeline for a class project",
-        template_path="./temp/my_pipeline.json",
+        template_path=f"{PIPELINE_ROOT}/my_pipeline.json",
         pipeline_root=f"gs://kfp_bucket_pipeline/{PIPELINE_ROOT}/",
         project="personal-448814",
         location="us-central1",
@@ -144,5 +153,9 @@ def execute_pipeline(cloud_event):
         
     )
     job.run(
-        service_account="personal@personal-448814.iam.gserviceaccount.com",
+        service_account=(
+            "personal@personal-448814.iam.gserviceaccount.com"
+        ),
     )
+
+execute_pipeline()
